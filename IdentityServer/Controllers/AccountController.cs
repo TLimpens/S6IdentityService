@@ -4,7 +4,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using IdentityModel.Client;
-using IdentityServer.Models;
+using IdentityServer.Business.Users;
+using IdentityServer.Common.DataTransfer.User;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,36 +15,25 @@ namespace IdentityServer.Controllers
     [ApiController]
     public class AccountController : ControllerBase
     {
-        private TokenController _tokenController;
+        private IUserManager _userManager;
 
-        public AccountController()
+        public AccountController(IUserManager userManager)
         {
-            _tokenController = new TokenController();
+            _userManager = userManager;
         }
 
         [Route("login")]
         [HttpPost]
         public async Task<User> LoginAsync(User user)
         {
-            HttpClient httpClient = new HttpClient();
-            var tokenResponse = await httpClient.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
-            {
-                Address = "https://localhost:5020/connect/token",
-                ClientId = "ClientId",
-                ClientSecret = "ClientSecret",
-                Scope = "SampleService"
-            });
+            return await _userManager.LoginAsync(user); 
+        }
 
-            var retrievedUser = user; //TODO: Hook up to database
-            retrievedUser.id = user.id;
-            retrievedUser.name = user.name;
-            retrievedUser.username = user.username;
-            retrievedUser.token = tokenResponse.AccessToken;
-
-            if (retrievedUser == null)
-                throw new Exception("Invalid username/password");
-
-            return retrievedUser;
+        [Route("create")]
+        [HttpPost]
+        public void CreateUser([FromBody]User user)
+        {
+            _userManager.CreateUser(user);
         }
 
     }
